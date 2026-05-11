@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -64,7 +64,7 @@ def train_model() -> dict[str, Any]:
 
     version = {
         "model_version": settings.model_version,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "model_sha256": _sha256(settings.model_path),
         "training_dataset": "sklearn.datasets.load_breast_cancer",
         "metrics": metrics,
@@ -97,7 +97,8 @@ Portfolio demonstration for a binary classification MLOps workflow. Not for medi
 
 ## Limitations
 
-This model uses a small built-in dataset and is only intended to demonstrate engineering practices.
+This model uses a small built-in dataset and is only intended to 
+demonstrate engineering practices.
 """,
         encoding="utf-8",
     )
@@ -112,7 +113,9 @@ def _log_to_mlflow(metrics: dict[str, float | int], version: dict[str, Any]) -> 
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     mlflow.set_experiment("ai-mlops-template")
     with mlflow.start_run(run_name=f"model-{settings.model_version}"):
-        mlflow.log_params({"model_type": "logistic_regression", "dataset": version["training_dataset"]})
+        mlflow.log_params({
+            "model_type": "logistic_regression", 
+            "dataset": version["training_dataset"]})
         for key, value in metrics.items():
             mlflow.log_metric(key, float(value))
         mlflow.log_artifact(str(settings.model_path))
