@@ -106,7 +106,7 @@ demonstrate engineering practices.
 
 def _log_to_mlflow(metrics: dict[str, float | int], version: dict[str, Any]) -> None:
     try:
-        import mlflow  # type: ignore
+        import mlflow
     except Exception:
         return
 

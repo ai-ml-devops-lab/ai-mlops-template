@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from typing import Any
+from typing import Any, cast
 
 import joblib
 import numpy as np
@@ -38,7 +38,9 @@ def health() -> dict[str, str]:
 def metadata() -> dict[str, Any]:
     if not settings.version_path.exists():
         train_model()
-    return json.loads(settings.version_path.read_text(encoding="utf-8"))
+
+    payload = json.loads(settings.version_path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], payload)
 
 
 @app.post("/predict", response_model=PredictionResponse)
