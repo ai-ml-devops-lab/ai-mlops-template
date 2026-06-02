@@ -9,8 +9,14 @@ import numpy as np
 from fastapi import FastAPI, HTTPException
 
 from mlops_template.config import settings
-from mlops_template.schema import PredictionRequest, PredictionResponse
-from mlops_template.train import train_model
+from mlops_template.schema import (
+    FeatureInfoResponse,
+    HealthResponse,
+    MetadataResponse,
+    PredictionRequest,
+    PredictionResponse,
+)
+from mlops_template.train import get_feature_names, train_model
 
 app = FastAPI(title="AI MLOps Template API", version="0.1.0")
 
@@ -29,18 +35,31 @@ def _load_version() -> str:
     return settings.model_version
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "model_path": str(settings.model_path)}
-
-
-@app.get("/metadata")
-def metadata() -> dict[str, Any]:
+def _load_metadata() -> dict[str, Any]:
     if not settings.version_path.exists():
         train_model()
-
     payload = json.loads(settings.version_path.read_text(encoding="utf-8"))
     return cast(dict[str, Any], payload)
+
+
+@app.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    return HealthResponse(
+        status="ok",
+        model_path=str(settings.model_path),
+        model_available=settings.model_path.exists(),
+    )
+
+
+@app.get("/features", response_model=FeatureInfoResponse)
+def features() -> FeatureInfoResponse:
+    feature_names = get_feature_names()
+    return FeatureInfoResponse(feature_count=len(feature_names), feature_names=feature_names)
+
+
+@app.get("/metadata", response_model=MetadataResponse)
+def metadata() -> MetadataResponse:
+    return MetadataResponse.model_validate(_load_metadata())
 
 
 @app.post("/predict", response_model=PredictionResponse)

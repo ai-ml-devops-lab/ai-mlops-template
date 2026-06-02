@@ -16,6 +16,9 @@ from sklearn.preprocessing import StandardScaler
 
 from mlops_template.config import settings
 
+MODEL_TYPE = "logistic_regression"
+TRAINING_DATASET = "sklearn.datasets.load_breast_cancer"
+
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -25,7 +28,14 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def get_feature_names() -> list[str]:
+    """Return the ordered feature contract used by the demo model."""
+    data = load_breast_cancer()
+    return [str(name) for name in data.feature_names]
+
+
 def build_pipeline() -> Pipeline:
+    """Build the deterministic scikit-learn pipeline used for training."""
     return Pipeline(
         steps=[
             ("scaler", StandardScaler()),
@@ -34,7 +44,21 @@ def build_pipeline() -> Pipeline:
     )
 
 
+def evaluate_model(pipeline: Pipeline, x_test: Any, y_test: Any) -> dict[str, float | int]:
+    """Evaluate a fitted pipeline with the metrics exposed by the template."""
+    predictions = pipeline.predict(x_test)
+    probabilities = pipeline.predict_proba(x_test)[:, 1]
+    return {
+        "accuracy": float(accuracy_score(y_test, predictions)),
+        "f1": float(f1_score(y_test, predictions)),
+        "roc_auc": float(roc_auc_score(y_test, probabilities)),
+        "n_test": int(x_test.shape[0]),
+        "n_features": int(x_test.shape[1]),
+    }
+
+
 def train_model() -> dict[str, Any]:
+    """Train the demo classifier and write model, metrics, metadata and model card."""
     data = load_breast_cancer()
     x_train, x_test, y_train, y_test = train_test_split(
         data.data,
@@ -47,18 +71,10 @@ def train_model() -> dict[str, Any]:
     pipeline = build_pipeline()
     pipeline.fit(x_train, y_train)
 
-    predictions = pipeline.predict(x_test)
-    probabilities = pipeline.predict_proba(x_test)[:, 1]
-    metrics = {
-        "accuracy": float(accuracy_score(y_test, predictions)),
-        "f1": float(f1_score(y_test, predictions)),
-        "roc_auc": float(roc_auc_score(y_test, probabilities)),
-        "n_train": int(x_train.shape[0]),
-        "n_test": int(x_test.shape[0]),
-        "n_features": int(x_train.shape[1]),
-    }
+    metrics = evaluate_model(pipeline, x_test, y_test)
+    metrics["n_train"] = int(x_train.shape[0])
 
-    settings.artifact_dir.mkdir(parents=True, exist_ok=True)
+    settings.ensure_artifact_dirs()
     joblib.dump(pipeline, settings.model_path)
     settings.metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
 
@@ -66,7 +82,9 @@ def train_model() -> dict[str, Any]:
         "model_version": settings.model_version,
         "created_at": datetime.now(UTC).isoformat(),
         "model_sha256": _sha256(settings.model_path),
-        "training_dataset": "sklearn.datasets.load_breast_cancer",
+        "training_dataset": TRAINING_DATASET,
+        "model_type": MODEL_TYPE,
+        "feature_names": get_feature_names(),
         "metrics": metrics,
     }
     settings.version_path.write_text(json.dumps(version, indent=2), encoding="utf-8")
@@ -88,6 +106,8 @@ Portfolio demonstration for a binary classification MLOps workflow. Not for medi
 
 - Version: `{version['model_version']}`
 - Artifact SHA-256: `{version['model_sha256']}`
+- Model type: `{version['model_type']}`
+- Training dataset: `{version['training_dataset']}`
 
 ## Metrics
 
@@ -113,9 +133,13 @@ def _log_to_mlflow(metrics: dict[str, float | int], version: dict[str, Any]) -> 
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     mlflow.set_experiment("ai-mlops-template")
     with mlflow.start_run(run_name=f"model-{settings.model_version}"):
-        mlflow.log_params({
-            "model_type": "logistic_regression", 
-            "dataset": version["training_dataset"]})
+        mlflow.log_params(
+            {
+                "model_type": MODEL_TYPE,
+                "dataset": version["training_dataset"],
+                "model_version": version["model_version"],
+            }
+        )
         for key, value in metrics.items():
             mlflow.log_metric(key, float(value))
         mlflow.log_artifact(str(settings.model_path))

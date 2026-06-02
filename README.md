@@ -10,6 +10,7 @@ Many organizations have useful notebooks but no repeatable path to production. T
 - metric logging and artifact metadata;
 - a versioned model bundle;
 - automated tests and linting;
+- generated English Sphinx documentation;
 - an API for serving predictions;
 - Docker packaging;
 - release workflow for GitHub Container Registry.
@@ -33,6 +34,15 @@ make serve
 
 Then open `http://localhost:8000/docs`.
 
+Build the project documentation with:
+
+```bash
+python -m pip install -e ".[docs]"
+make docs
+```
+
+Then open `docs/_build/html/index.html`.
+
 ## Docker
 
 ```bash
@@ -46,7 +56,15 @@ docker run --rm -p 8000:8000 ai-mlops-template:local
 2. Metrics are written to `artifacts/metrics.json`.
 3. The model is written to `artifacts/model.joblib`.
 4. `artifacts/model_version.json` contains a content hash and semantic version.
-5. The API loads the model from `MODEL_PATH` or the default artifact location.
+5. `artifacts/MODEL_CARD.md` summarizes intended use, metrics, and limitations.
+6. The API loads the model from `MODEL_PATH` or the default artifact location.
+
+## API endpoints
+
+- `GET /health` returns service health and artifact availability.
+- `GET /features` returns the ordered feature contract.
+- `GET /metadata` returns versioned model metadata.
+- `POST /predict` returns the model prediction and positive-class probability.
 
 ## Production extensions
 
