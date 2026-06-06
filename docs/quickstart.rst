@@ -48,7 +48,8 @@ The generated HTML output is written to ``docs/_build/html``.
 Configuration
 -------------
 
-The workflow is configured with environment variables:
+The workflow is configured with environment variables. See :doc:`reference`
+for the complete field-level reference.
 
 .. list-table::
    :header-rows: 1

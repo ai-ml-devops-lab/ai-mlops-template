@@ -43,3 +43,6 @@ HTTP API
    Accepts a ``PredictionRequest`` with 30 numeric features and returns a
    ``PredictionResponse`` containing the predicted class, positive-class
    probability, and model version.
+
+See :doc:`reference` for the full list of environment variables, metadata
+fields, metrics, and feature names.

@@ -43,6 +43,8 @@ make docs
 
 Then open `docs/_build/html/index.html`.
 
+The Sphinx reference documents environment variables, artifact fields, API payload fields, metrics, and the required prediction feature order.
+
 ## Docker
 
 ```bash

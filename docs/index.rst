@@ -20,6 +20,7 @@ The repository demonstrates a complete local workflow:
    quickstart
    architecture
    operations
+   reference
    api
 
 Indices and tables

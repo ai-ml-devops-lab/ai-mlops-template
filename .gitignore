@@ -1,11 +1,46 @@
+# Python bytecode and caches
 __pycache__/
 *.py[cod]
-.venv/
-.env
-artifacts/
-mlruns/
-docs/_build/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.pyre/
+.hypothesis/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+
+# ML and generated artifacts
+artifacts/
+mlruns/
+docs/_build/
+
+# Packaging and build output
 *.egg-info/
+build/
+dist/
+
+# Test and coverage output
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Logs and temporary files
+*.log
+.cache/
+.tmp/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

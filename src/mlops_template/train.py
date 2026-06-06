@@ -21,6 +21,14 @@ TRAINING_DATASET = "sklearn.datasets.load_breast_cancer"
 
 
 def _sha256(path: Path) -> str:
+    """Calculate a SHA-256 checksum for a file.
+
+    Args:
+        path: File path to hash.
+
+    Returns:
+        Hex-encoded SHA-256 digest of the file contents.
+    """
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -29,13 +37,23 @@ def _sha256(path: Path) -> str:
 
 
 def get_feature_names() -> list[str]:
-    """Return the ordered feature contract used by the demo model."""
+    """Return the ordered feature contract used by the demo model.
+
+    Returns:
+        Feature names from the breast cancer dataset in the exact order expected
+        by the trained pipeline and prediction API.
+    """
     data = load_breast_cancer()
     return [str(name) for name in data.feature_names]
 
 
 def build_pipeline() -> Pipeline:
-    """Build the deterministic scikit-learn pipeline used for training."""
+    """Build the deterministic scikit-learn pipeline used for training.
+
+    Returns:
+        A scikit-learn pipeline with standard scaling followed by logistic
+        regression.
+    """
     return Pipeline(
         steps=[
             ("scaler", StandardScaler()),
@@ -45,7 +63,19 @@ def build_pipeline() -> Pipeline:
 
 
 def evaluate_model(pipeline: Pipeline, x_test: Any, y_test: Any) -> dict[str, float | int]:
-    """Evaluate a fitted pipeline with the metrics exposed by the template."""
+    """Evaluate a fitted pipeline with the metrics exposed by the template.
+
+    Args:
+        pipeline: Fitted scikit-learn pipeline with ``predict`` and
+            ``predict_proba`` methods.
+        x_test: Test feature matrix. It must expose ``shape`` and contain the
+            same feature order used during training.
+        y_test: Ground-truth labels for ``x_test``.
+
+    Returns:
+        Dictionary containing ``accuracy``, ``f1``, ``roc_auc``, ``n_test``,
+        and ``n_features``.
+    """
     predictions = pipeline.predict(x_test)
     probabilities = pipeline.predict_proba(x_test)[:, 1]
     return {
@@ -58,7 +88,16 @@ def evaluate_model(pipeline: Pipeline, x_test: Any, y_test: Any) -> dict[str, fl
 
 
 def train_model() -> dict[str, Any]:
-    """Train the demo classifier and write model, metrics, metadata and model card."""
+    """Train the demo classifier and write all local model artifacts.
+
+    The training run writes the serialized model, metrics JSON, model metadata,
+    and model card to the paths configured in ``mlops_template.config``. If
+    MLflow is installed, it also logs parameters, metrics, and artifacts.
+
+    Returns:
+        Version metadata containing model version, creation timestamp, model
+        checksum, dataset identifier, model type, feature names, and metrics.
+    """
     data = load_breast_cancer()
     x_train, x_test, y_train, y_test = train_test_split(
         data.data,
@@ -94,6 +133,12 @@ def train_model() -> dict[str, Any]:
 
 
 def _write_model_card(path: Path, version: dict[str, Any]) -> None:
+    """Write a Markdown model card for the trained demo model.
+
+    Args:
+        path: Destination path for the model card.
+        version: Version metadata returned by ``train_model``.
+    """
     metrics = version["metrics"]
     path.write_text(
         f"""# Model Card: Breast Cancer Classifier Demo
@@ -125,6 +170,12 @@ demonstrate engineering practices.
 
 
 def _log_to_mlflow(metrics: dict[str, float | int], version: dict[str, Any]) -> None:
+    """Log a training run to MLflow when the optional dependency is available.
+
+    Args:
+        metrics: Evaluation metrics to log as MLflow metrics.
+        version: Version metadata used for run parameters and artifact context.
+    """
     try:
         import mlflow
     except Exception:
@@ -147,6 +198,7 @@ def _log_to_mlflow(metrics: dict[str, float | int], version: dict[str, Any]) -> 
 
 
 def main() -> None:
+    """Run training from the command line and print version metadata as JSON."""
     version = train_model()
     print(json.dumps(version, indent=2))
 
